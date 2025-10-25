@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ customer.name }} - COFFLOW{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('employee_search') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-right"></i> العودة للبحث
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- معلومات العميل -->
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body p-4">
+                <i class="fas fa-user-circle fa-5x mb-3" style="color: var(--primary-color);"></i>
+                <h4 class="mb-2">{{ customer.name }}</h4>
+                <p class="text-muted mb-1">
+                    <i class="fas fa-phone"></i> {{ customer.phone }}
+                </p>
+                {% if customer.email %}
+                <p class="text-muted">
+                    <i class="fas fa-envelope"></i> {{ customer.email }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- عدد الأكواب -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-coffee"></i> تقدم الأكواب
+                </h5>
+            </div>
+            <div class="card-body text-center p-4">
+                <h2 class="mb-3" style="color: var(--primary-color);">
+                    {{ customer.cups_count }} / {{ cups_required }}
+                </h2>
+                
+                <!-- عرض الأكواب بشكل مرئي -->
+                <div class="mb-4">
+                    {% for i in range(cups_required) %}
+                        <div class="coffee-cup {% if i >= customer.cups_count %}empty{% endif %}"></div>
+                    {% endfor %}
+                </div>
+
+                <form method="POST" action="{{ url_for('employee_add_cup', id=customer.id) }}">
+                    <button type="submit" class="btn btn-primary btn-lg" 
+                            onclick="return confirm('هل تريد إضافة كوب لهذا العميل؟')">
+                        <i class="fas fa-plus-circle"></i> إضافة كوب جديد
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- الأكواد النشطة -->
+        {% if active_coupons %}
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-gift"></i> الأكواد النشطة
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for coupon in active_coupons %}
+                <div class="coupon-code mb-3">
+                    {{ coupon.code }}
+                </div>
+                <p class="text-muted small text-center">
+                    تم الإنشاء: {{ coupon.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

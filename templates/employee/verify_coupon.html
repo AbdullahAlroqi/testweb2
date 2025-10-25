@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}التحقق من كوبون - COFFLOW{% endblock %}
+
+{% block content %}
+<h2 class="mb-4 text-center">
+    <i class="fas fa-ticket-alt"></i> التحقق من كوبون
+</h2>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <!-- نموذج إدخال الكود -->
+        <div class="card shadow-lg">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('employee_verify_coupon') }}">
+                    <div class="mb-4">
+                        <label for="code" class="form-label fw-bold">
+                            <i class="fas fa-qrcode"></i> أدخل كود الكوبون
+                        </label>
+                        <input type="text" class="form-control form-control-lg text-center" 
+                               id="code" name="code" placeholder="XXXXXXXX" 
+                               style="letter-spacing: 3px; font-weight: bold;"
+                               required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-check-circle"></i> التحقق من الكود
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- نتيجة التحقق -->
+        {% if message %}
+        <div class="card mt-4">
+            <div class="card-body text-center p-4">
+                {% if status == 'success' %}
+                    <i class="fas fa-check-circle fa-5x text-success mb-3"></i>
+                    <h3 class="text-success mb-3">نجح التحقق!</h3>
+                    <p class="lead">{{ message }}</p>
+                    {% if coupon %}
+                    <hr>
+                    <div class="text-start">
+                        <p><strong>العميل:</strong> {{ coupon.customer.name }}</p>
+                        <p><strong>رقم الجوال:</strong> {{ coupon.customer.phone }}</p>
+                        <p><strong>الكود:</strong> <code>{{ coupon.code }}</code></p>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <i class="fas fa-times-circle fa-5x text-danger mb-3"></i>
+                    <h3 class="text-danger mb-3">فشل التحقق!</h3>
+                    <p class="lead">{{ message }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- تعليمات -->
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> تعليمات الاستخدام
+                </h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li class="mb-2">اطلب من العميل إظهار كود الكوبون من حسابه</li>
+                    <li class="mb-2">أدخل الكود في الحقل أعلاه</li>
+                    <li class="mb-2">اضغط على "التحقق من الكود"</li>
+                    <li class="mb-2">إذا كان الكود صحيحاً، سيتم قبوله وإلغاؤه تلقائياً</li>
+                    <li class="mb-2">إذا كان مستخدماً مسبقاً، سيظهر رسالة رفض</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
