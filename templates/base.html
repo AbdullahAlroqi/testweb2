@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>{% block title %}COFFLOW - نظام الولاء{% endblock %}</title>
+    
+    <!-- Bootstrap RTL CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts - Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Dynamic Colors: Primary={{ settings.primary_color if settings else '#8B4513' }} | Secondary={{ settings.secondary_color if settings else '#D2691E' }} -->
+    <style>
+        :root {
+            --primary-color: {{ settings.primary_color if settings else '#8B4513' }};
+            --secondary-color: {{ settings.secondary_color if settings else '#D2691E' }};
+            --dark-brown: #514f4b;
+            --light-cream: #F5F5DC;
+        }
+        
+        * {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-brown) 100%);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: white !important;
+        }
+        
+        .navbar-brand i {
+            color: var(--secondary-color);
+        }
+        
+        .nav-link {
+            color: rgba(255,255,255,0.9) !important;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: var(--secondary-color) !important;
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-brown) 100%);
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.4);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem 1.5rem;
+        }
+        
+        .alert {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .coffee-cup {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: var(--secondary-color);
+            border-radius: 5px;
+            position: relative;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        .coffee-cup:before {
+            content: '☕';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+        
+        .coffee-cup.empty {
+            background: #e0e0e0;
+            opacity: 0.5;
+        }
+        
+        .coffee-cup:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .coupon-code {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: var(--primary-color);
+            background: linear-gradient(135deg, #fff8dc 0%, #f5f5dc 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border: 3px dashed var(--secondary-color);
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        
+        .stat-card p {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.25);
+        }
+        
+        .badge {
+            font-weight: 600;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, var(--dark-brown) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 20px 0;
+            margin-top: 50px;
+        }
+        
+        @media (max-width: 768px) {
+            .coffee-cup {
+                width: 35px;
+                height: 35px;
+                margin: 3px;
+            }
+            
+            .coffee-cup:before {
+                font-size: 20px;
+            }
+            
+            .coupon-code {
+                font-size: 1.5rem;
+                padding: 15px;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                {% if settings and settings.logo_path %}
+                    <img src="{{ url_for('static', filename='uploads/' + settings.logo_path) }}" 
+                         alt="Logo" style="height: 40px; margin-left: 10px; border-radius: 5px;">
+                {% else %}
+                    <i class="fas fa-coffee"></i>
+                {% endif %}
+                COFFLOW
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_employees') }}">
+                                    <i class="fas fa-users"></i> الموظفين
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_customers') }}">
+                                    <i class="fas fa-user-friends"></i> العملاء
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('admin_settings') }}">
+                                    <i class="fas fa-cog"></i> الإعدادات
+                                </a>
+                            </li>
+                        {% elif current_user.role == 'employee' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('employee_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('employee_search') }}">
+                                    <i class="fas fa-search"></i> البحث عن عميل
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('employee_verify_coupon') }}">
+                                    <i class="fas fa-ticket-alt"></i> التحقق من كوبون
+                                </a>
+                            </li>
+                        {% elif current_user.role == 'customer' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('customer_dashboard') }}">
+                                    <i class="fas fa-home"></i> الرئيسية
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('customer_history') }}">
+                                    <i class="fas fa-history"></i> سجل المشتريات
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_profile') }}">
+                                <i class="fas fa-user-cog"></i> {{ current_user.name }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="nav-item">
+                            <span class="nav-link">
+                                <i class="fas fa-user"></i> {{ current_user.name }}
+                            </span>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">
+                                <i class="fas fa-sign-in-alt"></i> تسجيل الدخول
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">
+                                <i class="fas fa-user-plus"></i> تسجيل جديد
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="container my-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer text-center">
+        <div class="container">
+            <p class="mb-0">
+                <i class="fas fa-coffee"></i> 
+                نظام الولاء الخاص بمقهى COFFLOW &copy; 2024
+            </p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
