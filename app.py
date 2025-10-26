@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from models import db, User, Coupon, Transaction, Settings
 from config import Config
+from translations import get_all_translations
 import os
 from datetime import datetime
 from functools import wraps
@@ -23,11 +24,14 @@ login_manager.login_message = 'يرجى تسجيل الدخول للوصول إ�
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Context processor لجعل الإعدادات متاحة في جميع القوالب
+# Context processor لجعل الإعدادات والترجمات متاحة في جميع القوالب
 @app.context_processor
 def inject_settings():
     settings = Settings.query.first()
-    return dict(settings=settings)
+    # الحصول على اللغة من الجلسة (افتراضياً عربي)
+    lang = session.get('lang', 'ar')
+    translations = get_all_translations(lang)
+    return dict(settings=settings, lang=lang, t=translations)
 
 # Decorator للتحقق من الصلاحيات
 def role_required(role):
@@ -49,6 +53,14 @@ def admin_or_employee_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+# تجديد الجلسة تلقائياً عند كل طلب
+@app.before_request
+def make_session_permanent():
+    """جعل الجلسة دائمة لجميع المستخدمين المسجلين"""
+    if current_user.is_authenticated:
+        session.permanent = True
 
 
 # ==================== المسارات العامة ====================
@@ -79,7 +91,9 @@ def login():
         user = User.query.filter_by(phone=phone).first()
         
         if user and user.check_password(password):
-            login_user(user)
+            # جعل الجلسة دائمة لمدة 30 يوم
+            session.permanent = True
+            login_user(user, remember=True)
             flash(f'أهلاً {user.name}!', 'success')
             return redirect(url_for('index'))
         else:
@@ -129,6 +143,15 @@ def logout():
     logout_user()
     flash('تم تسجيل الخروج بنجاح', 'info')
     return redirect(url_for('index'))
+
+
+@app.route('/change-language/<lang>')
+def change_language(lang):
+    """تغيير اللغة"""
+    if lang in ['ar', 'en', 'bn']:
+        session['lang'] = lang
+    # العودة للصفحة السابقة أو الصفحة الرئيسية
+    return redirect(request.referrer or url_for('index'))
 
 
 # ==================== صفحات الإدارة ====================
@@ -232,13 +255,105 @@ def admin_edit_employee(id):
     return render_template('admin/edit_employee.html', employee=employee)
 
 
-@app.route('/admin/customers')
+@app.route('/admin/customers', methods=['GET', 'POST'])
 @login_required
 @role_required('admin')
 def admin_customers():
-    """عرض جميع العملاء"""
-    customers = User.query.filter_by(role='customer').all()
-    return render_template('admin/customers.html', customers=customers)
+    """عرض جميع العملاء مع البحث"""
+    search_query = ''
+    
+    if request.method == 'POST':
+        search_query = request.form.get('query', '')
+        customers = User.query.filter(
+            User.role == 'customer',
+            db.or_(
+                User.name.contains(search_query),
+                User.phone.contains(search_query),
+                User.email.contains(search_query) if search_query else False
+            )
+        ).all()
+    else:
+        customers = User.query.filter_by(role='customer').all()
+    
+    return render_template('admin/customers.html', customers=customers, search_query=search_query)
+
+
+@app.route('/admin/customers/export')
+@login_required
+@role_required('admin')
+def admin_export_customers():
+    """تصدير بيانات العملاء إلى Excel"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    from flask import send_file
+    from io import BytesIO
+    
+    # إنشاء ملف Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "العملاء"
+    
+    # تنسيق العناوين
+    header_fill = PatternFill(start_color="8B4513", end_color="8B4513", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # العناوين
+    headers = ["#", "الاسم", "رقم الجوال", "البريد الإلكتروني", "عدد الأكواب", 
+               "الأكواد النشطة", "الأكواد المستخدمة", "تاريخ التسجيل"]
+    
+    for col, header in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # جلب بيانات العملاء
+    customers = User.query.filter_by(role='customer').order_by(User.created_at.desc()).all()
+    
+    # كتابة البيانات
+    for row, customer in enumerate(customers, start=2):
+        active_coupons = Coupon.query.filter_by(customer_id=customer.id, status='active').count()
+        used_coupons = Coupon.query.filter_by(customer_id=customer.id, status='used').count()
+        
+        ws.cell(row=row, column=1, value=row-1)
+        ws.cell(row=row, column=2, value=customer.name)
+        ws.cell(row=row, column=3, value=customer.phone)
+        ws.cell(row=row, column=4, value=customer.email or '-')
+        ws.cell(row=row, column=5, value=customer.cups_count)
+        ws.cell(row=row, column=6, value=active_coupons)
+        ws.cell(row=row, column=7, value=used_coupons)
+        ws.cell(row=row, column=8, value=customer.created_at.strftime('%Y-%m-%d'))
+        
+        # محاذاة البيانات
+        for col in range(1, 9):
+            ws.cell(row=row, column=col).alignment = Alignment(horizontal="center", vertical="center")
+    
+    # تعديل عرض الأعمدة
+    ws.column_dimensions['A'].width = 8
+    ws.column_dimensions['B'].width = 25
+    ws.column_dimensions['C'].width = 18
+    ws.column_dimensions['D'].width = 30
+    ws.column_dimensions['E'].width = 15
+    ws.column_dimensions['F'].width = 15
+    ws.column_dimensions['G'].width = 18
+    ws.column_dimensions['H'].width = 18
+    
+    # حفظ الملف في الذاكرة
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+    
+    # إرسال الملف
+    from datetime import datetime
+    filename = f'customers_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    
+    return send_file(
+        excel_file,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 @app.route('/admin/customer/<int:id>')
@@ -305,6 +420,32 @@ def admin_edit_customer(id):
             return redirect(url_for('admin_customer_details', id=id))
     
     return render_template('admin/edit_customer.html', customer=customer)
+
+
+@app.route('/admin/customer/delete/<int:id>', methods=['POST'])
+@login_required
+@role_required('admin')
+def admin_delete_customer(id):
+    """حذف عميل"""
+    customer = User.query.get_or_404(id)
+    
+    if customer.role != 'customer':
+        flash('المستخدم المطلوب غير موجود', 'danger')
+        return redirect(url_for('admin_customers'))
+    
+    # حذف جميع الأكواد المرتبطة بالعميل
+    Coupon.query.filter_by(customer_id=id).delete()
+    
+    # حذف جميع العمليات المرتبطة بالعميل
+    Transaction.query.filter_by(customer_id=id).delete()
+    
+    # حذف العميل
+    customer_name = customer.name
+    db.session.delete(customer)
+    db.session.commit()
+    
+    flash(f'تم حذف العميل "{customer_name}" وجميع بياناته بنجاح', 'success')
+    return redirect(url_for('admin_customers'))
 
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
@@ -407,7 +548,7 @@ def employee_search():
     search_query = ''
     
     if request.method == 'POST':
-        search_query = request.form.get('search', '')
+        search_query = request.form.get('query', '')
         customers = User.query.filter(
             User.role == 'customer',
             db.or_(
@@ -472,6 +613,43 @@ def employee_add_cup(id):
         flash(f'تم إضافة كوب! العدد الحالي: {customer.cups_count}/{cups_required}', 'success')
     
     return redirect(url_for('employee_customer', id=id))
+
+
+@app.route('/employee/redeem-coupon/<int:customer_id>/<int:coupon_id>', methods=['POST'])
+@login_required
+@admin_or_employee_required
+def employee_redeem_coupon(customer_id, coupon_id):
+    """صرف كود للعميل مباشرة من صفحة إضافة الكوب"""
+    customer = User.query.get_or_404(customer_id)
+    coupon = Coupon.query.get_or_404(coupon_id)
+    
+    # التحقق من أن الكوبون يخص العميل
+    if coupon.customer_id != customer_id:
+        flash('خطأ في البيانات', 'danger')
+        return redirect(url_for('employee_customer', id=customer_id))
+    
+    # التحقق من حالة الكوبون
+    if coupon.status == 'used':
+        flash('الكود مستخدم سابقاً', 'danger')
+        return redirect(url_for('employee_customer', id=customer_id))
+    
+    if coupon.status == 'active':
+        # استخدام الكود
+        coupon.use_coupon(current_user.id)
+        
+        # تسجيل العملية
+        transaction = Transaction(
+            customer_id=customer_id,
+            employee_id=current_user.id,
+            transaction_type='redeem_coupon',
+            description=f'صرف كوبون: {coupon.code}'
+        )
+        db.session.add(transaction)
+        db.session.commit()
+        
+        flash(f'تم صرف الكوب المجاني بنجاح! الكود: {coupon.code}', 'success')
+    
+    return redirect(url_for('employee_customer', id=customer_id))
 
 
 @app.route('/employee/verify-coupon', methods=['GET', 'POST'])
