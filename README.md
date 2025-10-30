@@ -23,7 +23,7 @@
 pip install -r requirements.txt
 ```
 
-### 2. تشغيل التطبيق
+### 2. تشغيل التطبيق ال
 
 ```bash
 python app.py
