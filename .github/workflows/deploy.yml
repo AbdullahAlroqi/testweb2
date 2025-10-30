@@ -10,7 +10,7 @@ on:
 # متغيرات البيئة التي ستستخدمها
 env:
   PROJECT_ID: "cofflow"       # 👈 غير هذا: رقم مشروعك في جوجل
-  SERVICE_NAME: "app"          # 👈 غير هذا: اسم خدمتك في Cloud Run
+  SERVICE_NAME: "cofflow"          # 👈 غير هذا: اسم خدمتك في Cloud Run
   REGION: "us-central1"               # 👈 غير هذا: المنطقة التي ستنشر فيها
 
 jobs:
